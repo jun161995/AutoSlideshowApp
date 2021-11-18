@@ -10,11 +10,12 @@ import android.provider.MediaStore
 import android.content.ContentUris
 import android.net.Uri
 import android.os.Handler
+import android.widget.Toast
 import java.util.*
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
-
+    private var pause_button_flg = true
     private val PERMISSIONS_REQUEST_CODE = 100
     var list = ArrayList<Uri>()// 配列はグローバルにしたい,String型ではなくUri型
     var index = 0
@@ -39,20 +40,40 @@ class MainActivity : AppCompatActivity() {
             }
         }
         pause_button.setOnClickListener {
-            if (mTimer == null) {
-                mTimer = Timer()
-                mTimer!!.schedule(object : TimerTask() {
-                    override fun run() {
-                        if (index == list.size - 1) { // =は代入になってしまうため、条件式は==で表す
-                            index = 0
-                            imageView.setImageURI(list[index])
-                        } else {
-                            index = index + 1
-                            imageView.setImageURI(list[index])
+            if(pause_button.text == "再生" ) {
+                pause_button.text = "停止"
+                back_button.isEnabled = false
+                foward_button.isEnabled = false//進む、戻るを押せなくする
+                pause_button_flg = false
+                if (mTimer == null) {
+                    mTimer = Timer()
+                    mTimer!!.schedule(object : TimerTask() {
+                        override fun run() {
+                            mHandler.post {
+
+                                if (index == list.size - 1) { // =は代入になってしまうため、条件式は==で表す
+                                    index = 0
+                                    imageView.setImageURI(list[index])
+                                } else {
+                                    index = index + 1
+                                    imageView.setImageURI(list[index])
+                                }
+                            }
                         }
-                    }
-                }, 2000, 2000)// 最初に始動させるまで2秒、ループの間隔を2秒 に設定
+                    }, 2000, 2000)// 最初に始動させるまで2秒、ループの間隔を2秒 に設定
+                }
+            }else if(pause_button_flg == false){
+                pause_button.text = "再生"
+                pause_button_flg = true
+                back_button.isEnabled = true
+                foward_button.isEnabled = true//進む、戻るを押せるようにする
+                if (mTimer != null) {
+                    mTimer!!.cancel()
+                    mTimer = null
+                }
             }
+
+
         }
         foward_button.setOnClickListener {
             if (index == list.size - 1) { // =は代入になってしまうため、条件式は==で表す
@@ -77,7 +98,7 @@ class MainActivity : AppCompatActivity() {
             }
             // Android 5系以下の場合
         } else {
-
+            getContentsInfo()
         }
     }
 
@@ -86,6 +107,11 @@ class MainActivity : AppCompatActivity() {
             PERMISSIONS_REQUEST_CODE ->
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     getContentsInfo()
+                }else{
+                    Toast.makeText(applicationContext, "デバイス内の写真やメディアへのアクセスが許可されませんでした。デバイス内の写真やメディアへのアクセスを許可しないとこのアプリは使えません", Toast.LENGTH_SHORT).show()
+                    back_button.isEnabled = false
+                    pause_button.isEnabled = false
+                    foward_button.isEnabled = false
                 }
         }
     }
